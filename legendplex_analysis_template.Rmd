@@ -1,0 +1,117 @@
+---
+title: "LegendPlex Template"
+author: "Zach McKay"
+date: "2022-09-27"
+output: html_document
+---
+
+If the below generates an error, remove the "#" in front of the install.packages and run the chunck again.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("tidyverse")
+#install.packages("xlsx")
+#install.packages("readxl")
+library(tidyverse)
+library(xlsx)
+library(readxl)
+```
+
+# Setup
+
+1. Create a copy of your working directory for each project
+2. Run analysis on LegendPlex software
+3. Copy and past table of concentrations into "legendplex.tsv" file in the working directory. Make sure to ungroup all columns and rows before copying and pasting, and only select the span of rows and columns that contain data
+
+
+# Import data
+
+Import the data set as a object
+
+```{r}
+legendplex <- read_tsv("legendplex.csv")
+head(legendplex)
+```
+
+# Important! DO NOT RUN WITHOUT EDITING BASED ON YOUR DATA!
+
+First, confirm that the first row contains only NA or pg/ml. If this is the case, run the following code chunk to remove this row from your data.
+
+```{r}
+legendplex <- legendplex[-c(1),]
+head(legendplex)
+```
+
+Next, check which columns do not contain values. Enter those columns as numbers below to assign to remove_rows. Note that this should maintain the "c( , ,)" structure. Also, remember that R starts index from 1 (not 0 as some programming languages do). The columns with no data should be titled with the number of the index column.
+
+```{r}
+#change the numbers to columns you want to remove below
+remove_rows <- c(2, 3, 7, 8)
+```
+
+Next, use the the vector you created to remove the rows from the data set by running the below code. If you did not change (or at least check) the vector of column indexes to remove, DO NOT RUN THE FOLLOWING CODE! DO NOT RERUN THIS CODE!
+
+```{r}
+# only run this code if you have changed remove_rows after reimporting the source data
+legendplex <- legendplex[,-remove_rows]
+head(legendplex)
+```
+
+# Option 1: Add information from an excel file
+
+
+First, run the following code to export an excel file based on your data. You will enter your own descriptions of replicants and experimental conditions
+
+```{r}
+conditions <- data.frame(matrix(ncol =3, nrow = length(legendplex$Name)))
+conditions[1] = legendplex[1]
+conditions <- rename(conditions, "Name" = "X1", "group" = "X2", 
+                     "replicant" = "X3")
+head(conditions)
+
+```
+
+If you can see the names of the individual samples and empty columns for conditions and replicant, move to the next step to write this to an Excel file so that you can directly edit it. If you have already created this excel file, it will not write. If this is not the Excel file you wish to use, please delete it and write a new file.
+
+```{r}
+if(!file.exists("conditions.xlsx")) {
+  write.xlsx(conditions, "conditions.xlsx", sheetName = "Sheet1",
+              col.names = TRUE, row.names = FALSE, append = FALSE)
+}
+
+```
+
+Open that file directly from the directory and edit the conditions and replicant columns for each column as necessary. The conditions column should be edited so that each sample with the same treatment conditions should fall in same group. It does not matter what that group is, you can just use a letter if you want, or you can describe it, but it must be exactly the same (case included) to be considered to have the same treatment conditions for downstream analysis. You alternatively ignore this paragraph and follow the instructions in the next paragraph 
+
+If you wish to add additional information about the treatment conditions, add additional columns. Adding as much information as you can at this point will make downstream analysis easier. For example, instead of inputing a "RIPOMOI1024HPI" for the conditions, make three additional columns titled "treatment", "concentration", and "timepoint" and enter "RIPO", "MOI10", and "24" for each column. Keep your column titles to a single word and use underscores if you need more than one word.
+
+The replicant column is if you are running multiple times from the same sample. If there are two replicants of a single sample, they should have the exact same value in the replicant column. Later analysis will average these into a single value. If you do not wish to average them into a single observation, just leave this column blank. You can leave this blank and not worry about it causing samples to be excluded from downstream analysis. 
+
+
+
+Read that file back in.
+
+```{r}
+conditions <- read_excel("conditions.xlsx")
+
+```
+
+Join this additional data to the data containing the cytokine data
+
+```{r}
+legendplex <- full_join(legendplex, conditions, by = "Name")
+```
+
+
+# Option 2: Code the values directly
+
+If you know how to code functions to add the data directly, that's better, but not very easy. This is designed to be run without knowing much R, so for something as complicated as this, it may be easier to directly edit a different Excel file.
+
+# Clean up the data
+
+Legendplex reports values which fall outside of the linear range as ">" or "<" the top or bottom standard value. This needs to be transformed in order to be able to treat these as numbers for analysis. We will simply remove these symbols so that these values can be considered to be at the top or bottom of the range.
+
+```{r}
+
+```
+
